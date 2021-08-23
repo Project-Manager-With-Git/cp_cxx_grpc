@@ -1,0 +1,9 @@
+# include "{{ serv_name }}_serv/{{ serv_name }}_serv.h"
+
+int main(int argc, char** argv) {
+    {{ serv_name }}_serv::RootNode root;
+    root.set_name("{{ serv_name }}");
+    root.set_schema({{ serv_name }}_serv::SCHEMA);
+    root.exec(argc,argv);
+    return 0;
+}

@@ -1,0 +1,44 @@
+{
+    "language": "CXX",
+    "description": "C++语言grpc组件库.",
+    "author": "hsz",
+    "template_type": "components",
+    "template_keys": {
+        "serv_name": {
+            "description": "定义service的名字",
+            "default": "{{ project_name }}",
+            "ask": true
+        },
+        "app_name": {
+            "description": "定义app的名字",
+            "default": "{{ project_name }}"
+        }
+    },
+    "components": {
+        "service_schema": {
+            "source": "pbschema/echo.proto.jinja",
+            "description": "项目定义service的proto文件",
+            "default_path": "pbschema/{{ serv_name }}.proto"
+        },
+        "main": {
+            "source": "main.cc.jinja",
+            "description": "定义项目的入口函数",
+            "default_path": "src/main.cc"
+        },
+        "sync_serv_handdler": {
+            "source": "sync/serv/handler.cc.jinja",
+            "description": "grpc同步服务端处理实现部分模板",
+            "default_path": "src/{{ serv_name }}_serv/handler.cc"
+        },
+        "sync_serv_serv": {
+            "source": "sync/serv/serv.cc.jinja",
+            "description": "grpc同步服务端的服务定义模块模板",
+            "default_path": "src/{{ serv_name }}_serv/serv.cc"
+        },
+        "sync_serv_header": {
+            "source": "sync/serv/sync_serv.h.jinja",
+            "description": "grpc同步服务端模块的头文件模板",
+            "default_path": "src/{{ serv_name }}_serv/{{ serv_name }}_serv.h"
+        }
+    }
+}
