@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.0)
+
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
+project({{ app_name }}
+    VERSION {{ app_version }}
+    DESCRIPTION "{{ app_name }} 的grpc服务"
+    LANGUAGES CXX
+)
+
+
+include(${CMAKE_CURRENT_LIST_DIR}/build/conanbuildinfo.cmake)
+conan_basic_setup()
+
+add_definitions("-std=c++17")
+add_executable(${PROJECT_NAME})
+
+target_sources(${PROJECT_NAME} 
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_pb/{{ serv_name }}.grpc.pb.cc
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_pb/{{ serv_name }}.grpc.pb.h
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_pb/{{ serv_name }}.pb.cc
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_pb/{{ serv_name }}.pb.h
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_serv/handler.cc
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_serv/serv.cc
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/{{ serv_name }}_serv/{{ serv_name }}_serv.h
+    PRIVATE ${CMAKE_CURRENT_LIST_DIR}/src/main.cc
+)
+target_compile_options(${PROJECT_NAME}
+    PRIVATE "-static"
+)
+target_link_libraries(${PROJECT_NAME}
+    ${CONAN_LIBS}
+)
