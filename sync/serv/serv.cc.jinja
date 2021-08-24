@@ -56,12 +56,12 @@ namespace {{ serv_name }}_serv{
             auto compression = this->config["compression"].get<std::string>();
             if (compression == std::string("gzip")){
                 builder.SetDefaultCompressionAlgorithm(GRPC_COMPRESS_GZIP);
-                logger->info("Compression setted",{{"algo",compression}});
+                logger->info("Compression setted",\{\{"algo",compression\}\});
             }else if (compression == std::string("deflate")){
                 builder.SetDefaultCompressionAlgorithm(GRPC_COMPRESS_DEFLATE);
-                logger->info("Compression setted",{{"algo",compression}});
+                logger->info("Compression setted",\{\{"algo",compression\}\});
             }else{
-                logger->info("Compression not support",{{"algo",compression}});
+                logger->info("Compression not support",\{\{"algo",compression\}\});
             }
         }
         // 消息大小设置
@@ -175,7 +175,7 @@ namespace {{ serv_name }}_serv{
         builder.RegisterService(&service);
         // Finally assemble the server.
         std::unique_ptr<Server> server(builder.BuildAndStart());
-        logger->info("Server start",{{"address",address}});
+        logger->info("Server start",\{\{"address",address\}\});
         server->Wait();
     }
 }

@@ -17,9 +17,9 @@ using grpc::ServerWriter;
 namespace {{ serv_name }}_serv {
     class {{ serv_name | upper }}_RPCServiceImpl final : public {{ serv_name | upper }}_RPC::Service {
         Status Square(ServerContext* context, const Message* request, Message* response) override;
-        Status RangeSquare(ServerContext* context, const Message* request, ServerWriter< Message>* writer) override;
-        Status SumSquare(ServerContext* context, ServerReader< Message>* reader, Message* response) override;
-        Status StreamrangeSquare(ServerContext* context, ServerReaderWriter< Message, Message>* stream) override;
+        Status RangeSquare(ServerContext* context, const Message* request, ServerWriter<Message>* writer) override;
+        Status SumSquare(ServerContext* context, ServerReader<Message>* reader, Message* response) override;
+        Status StreamrangeSquare(ServerContext* context, ServerReaderWriter<Message, Message>* stream) override;
     };
     const json SCHEMA = R"({
     "$schema": "http://json-schema.org/draft-07/schema#",
