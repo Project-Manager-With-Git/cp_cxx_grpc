@@ -19,14 +19,14 @@ namespace {{ serv_name }}_serv {
     // req-res
     Status {{ serv_name | upper }}_RPCServiceImpl::Square(ServerContext* context, const Message* request, Message* response) {
         Logger* logger = Logger::getInstance();
-        logger->info("Square get message",\{\{"msg",request->message()\}\});
+        logger->info("Square get message",{ { "msg", request->message() } });
         response->set_message(std::pow(request->message(), 2));
         return Status::OK;
     }
     // req-stream
     Status {{ serv_name | upper }}_RPCServiceImpl::RangeSquare(ServerContext* context, const Message* request, ServerWriter<Message>* writer ) {
         Logger* logger = Logger::getInstance();
-        logger->info("RangeSquare get message",\{\{"msg",request->message()\}\});
+        logger->info("RangeSquare get message",{ { "msg", request->message() } });
         for (int i; i < request->message(); i++ ) {
             Message m;
             auto ii = double(i);
@@ -41,7 +41,7 @@ namespace {{ serv_name }}_serv {
         double res = 0;
         Message temp;
         while (reader->Read(&temp)) {
-            logger->info("SumSquare get message",\{\{"msg",temp.message()\}\});
+            logger->info("SumSquare get message",{ { "msg", temp.message() } });
             res += std::pow(temp.message(), 2);
         }
         response->set_message(res);
@@ -52,7 +52,7 @@ namespace {{ serv_name }}_serv {
         Logger* logger = Logger::getInstance();
         Message temp;
         while (stream->Read(&temp)) {
-            logger->info("StreamrangeSquare get message",\{{\"msg",temp.message()\}\});
+            logger->info("StreamrangeSquare get message",{ { "msg", temp.message() } });
             auto max = temp.message();
             for (int i; i < max; i++ ) {
                 Message m;
