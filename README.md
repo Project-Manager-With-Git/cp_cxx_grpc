@@ -8,6 +8,7 @@ C++语言grpc项目的组件仓库
 
 + 使用conan管理依赖
 
-+ grpc限定1.38.0版本
++ protobuf限定1.17.0版本
++ grpc限定1.43.0版本
 
 + 建议在vscode中使用`dev_env.dockerfile`构造的容器中进行开发

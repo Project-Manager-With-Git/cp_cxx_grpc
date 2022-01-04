@@ -6,7 +6,7 @@
 
 using grpc::ServerContext;
 using grpc::Status;
-using {{ serv_name }}::{{ serv_name | upper }}_RPC;
+using {{ serv_name }}::{{ serv_name | upper }};
 using {{ serv_name }}::Message;
 
 using grpc::ServerReader;
@@ -15,7 +15,7 @@ using grpc::ServerWriter;
 
 // 实现接口
 namespace {{ serv_name }}_serv {
-    class {{ serv_name | upper }}_RPCServiceImpl final : public {{ serv_name | upper }}_RPC::Service {
+    class {{ serv_name | upper }}ServiceImpl final : public {{ serv_name | upper }}::Service {
         Status Square(ServerContext* context, const Message* request, Message* response) override;
         Status RangeSquare(ServerContext* context, const Message* request, ServerWriter<Message>* writer) override;
         Status SumSquare(ServerContext* context, ServerReader<Message>* reader, Message* response) override;
@@ -112,6 +112,14 @@ namespace {{ serv_name }}_serv {
         "keepalive_enforement_permit_without_stream": {
             "type": "boolean",
             "description": "即使没有活动流也允许ping"
+        },
+        "xds_mode": {
+            "type": "boolean",
+            "description": "是否启用xds模式"
+        },
+        "xds_maintenance_port":{
+            "type": "integer",
+            "description": "xds模式安全模式下维护服务的端口,若<=0或者未填入则表示不启用安全模式"
         }
     }
 })"_json;

@@ -6,6 +6,8 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include <grpcpp/health_check_service_interface.h>
+#include <grpcpp/xds_server_builder.h>
+// #include <grpcpp/ext/admin_services.h>
 #include "schema_entry.h"
 #include "spdloghelper.h"
 #include <nlohmann/json.hpp>
@@ -35,6 +37,10 @@ void read (const std::string& filename, std::string& data){
 
 namespace {{ serv_name }}_serv{
     void RootNode::main() {
+        // 注册健康检查和反射接口
+        grpc::EnableDefaultHealthCheckService(true);
+        grpc::reflection::InitProtoReflectionServerBuilderPlugin();
+        // 初始化log和元数据
         auto address = this->config["address"].get<std::string>();
         auto app_name = this->config["app_name"].get<std::string>();
         auto log_level = this->config["log_level"].get<std::string>();
@@ -46,10 +52,7 @@ namespace {{ serv_name }}_serv{
             logger->init_logger(log_level,app_name);
         }
         
-        {{ serv_name | upper }}_RPCServiceImpl service;
-        // 注册健康检查和反射接口
-        grpc::EnableDefaultHealthCheckService(true);
-        grpc::reflection::InitProtoReflectionServerBuilderPlugin();
+        {{ serv_name | upper }}ServiceImpl service;
         ServerBuilder builder;
         // 压缩
         if (this->config.contains("compression")){
@@ -124,58 +127,97 @@ namespace {{ serv_name }}_serv{
                 builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS,0);
             }
         }
-        
-        // 注册监听端口(以及tls)
-        //启用tls
-        if (this->config.contains("server_cert_path") && this->config.contains("server_key_path")){
-            auto server_cert_path = this->config["server_cert_path"].get<std::string>();
-            auto server_key_path = this->config["server_key_path"].get<std::string>();
-            SslServerCredentialsOptions sslOps;
-            std::string key;
-	        std::string cert;
-            read( server_cert_path, cert );
-	        read( server_key_path, key );
-            SslServerCredentialsOptions::PemKeyCertPair keycert ={key,cert};
-            sslOps.pem_key_cert_pairs.push_back ( keycert );
-            // 启用客户端校验
-            if (this->config.contains("root_cert_path")){
-                auto root_cert_path = this->config["root_cert_path"].get<std::string>();
-                std::string root;
-                read( root_cert_path, root );
-                sslOps.pem_root_certs = root;
-                if (this->config.contains("client_certificate_request")){
-                    auto client_certificate_request = this->config["client_certificate_request"].get<std::string>();
-                    if (client_certificate_request == std::string("not_request")){
-                        sslOps.force_client_auth=true;
-                        sslOps.client_certificate_request=GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE;
-                    } else if (client_certificate_request == std::string("not_verify")){
-                        sslOps.force_client_auth=true;
-                        sslOps.client_certificate_request=GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
-                    } else if (client_certificate_request == std::string("request_and_verify")){
-                        sslOps.force_client_auth=true;
-                        sslOps.client_certificate_request=GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY;
-                    } else if (client_certificate_request == std::string("enforce_request")){
-                        sslOps.force_client_auth=true;
-                        sslOps.client_certificate_request=GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
-                    } else if (client_certificate_request == std::string("enforce_request_and_verify")){
-                        sslOps.force_client_auth=true;
-                        sslOps.client_certificate_request=GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY ;
-                    } else {
-                        sslOps.force_client_auth=false;
-                        sslOps.client_certificate_request=GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE;
+        //预备xds
+        auto xds_mode = false;
+        if (this->config.contains("xds_mode")){
+            xds_mode = this->config["xds_mode"].get<bool>();
+        }
+        auto xds_maintenance_port = 0;
+        if (this->config.contains("xds_maintenance_port")){
+            xds_maintenance_port = this->config["xds_maintenance_port"].get<int>();
+        }
+
+        if (xds_mode){
+            //使用xds模式,tls失效
+            logger->info("xds mode not support yet");
+            // grpc::XdsServerBuilder xds_builder;
+            // xds_builder.RegisterService(&service);
+            // if (xds_maintenance_port>0){
+            //     logger->info("run in xds secure mode");
+            //     // ssl将失效
+            //     xds_builder.AddListeningPort(address,grpc::experimental::XdsServerCredentials(grpc::InsecureServerCredentials()));
+            //     std::unique_ptr<Server> xds_enabled_server = xds_builder.BuildAndStart();
+            //     logger->info("Server start",{ { "address", address } });
+            //     grpc::AddAdminServices(&builder);
+            //     // For the maintenance server, do not use any authentication mechanism.
+            //     auto addressinfo = schema_entry::split(address,":");
+            //     auto maintenance_address = fmt::format("{}:{}", addressinfo[0],xds_maintenance_port);
+            //     builder.AddListeningPort(maintenance_address, grpc::InsecureServerCredentials());
+            //     std::unique_ptr<Server> server(builder.BuildAndStart());
+            //     logger->info("Maintenance Server start",{ { "address", address } });
+            //     server->Wait();
+            // }else{
+            //     logger->info("run in xds mode");
+            //     grpc::AddAdminServices(&xds_builder);
+            //     builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+            //     std::unique_ptr<Server> server(xds_builder.BuildAndStart());
+            //     logger->info("Server start",{ { "address", address } });
+            //     server->Wait();
+            // }
+        }else{
+            // 不使用xds模式
+            logger->info("run in common mode");
+            // 注册监听端口(以及tls)
+            //启用tls
+            if (this->config.contains("server_cert_path") && this->config.contains("server_key_path")){
+                auto server_cert_path = this->config["server_cert_path"].get<std::string>();
+                auto server_key_path = this->config["server_key_path"].get<std::string>();
+                SslServerCredentialsOptions sslOps;
+                std::string key;
+                std::string cert;
+                read( server_cert_path, cert );
+                read( server_key_path, key );
+                SslServerCredentialsOptions::PemKeyCertPair keycert ={key,cert};
+                sslOps.pem_key_cert_pairs.push_back ( keycert );
+                // 启用客户端校验
+                if (this->config.contains("root_cert_path")){
+                    auto root_cert_path = this->config["root_cert_path"].get<std::string>();
+                    std::string root;
+                    read( root_cert_path, root );
+                    sslOps.pem_root_certs = root;
+                    if (this->config.contains("client_certificate_request")){
+                        auto client_certificate_request = this->config["client_certificate_request"].get<std::string>();
+                        if (client_certificate_request == std::string("not_request")){
+                            sslOps.force_client_auth=true;
+                            sslOps.client_certificate_request=GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE;
+                        } else if (client_certificate_request == std::string("not_verify")){
+                            sslOps.force_client_auth=true;
+                            sslOps.client_certificate_request=GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+                        } else if (client_certificate_request == std::string("request_and_verify")){
+                            sslOps.force_client_auth=true;
+                            sslOps.client_certificate_request=GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY;
+                        } else if (client_certificate_request == std::string("enforce_request")){
+                            sslOps.force_client_auth=true;
+                            sslOps.client_certificate_request=GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+                        } else if (client_certificate_request == std::string("enforce_request_and_verify")){
+                            sslOps.force_client_auth=true;
+                            sslOps.client_certificate_request=GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY ;
+                        } else {
+                            sslOps.force_client_auth=false;
+                            sslOps.client_certificate_request=GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE;
+                        }
                     }
                 }
+                builder.AddListeningPort(address, grpc::SslServerCredentials( sslOps ));
+            }else{
+                builder.AddListeningPort(address, grpc::InsecureServerCredentials());
             }
-            builder.AddListeningPort(address, grpc::SslServerCredentials( sslOps ));
-        }else{
-            builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+            // 注册服务实现
+            builder.RegisterService(&service);
+            // Finally assemble the server.
+            std::unique_ptr<Server> server(builder.BuildAndStart());
+            logger->info("Server start",{ { "address", address } });
+            server->Wait();
         }
-        
-        // 注册服务实现
-        builder.RegisterService(&service);
-        // Finally assemble the server.
-        std::unique_ptr<Server> server(builder.BuildAndStart());
-        logger->info("Server start",{ { "address", address } });
-        server->Wait();
     }
 }
